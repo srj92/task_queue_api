@@ -1,0 +1,12 @@
+{
+  "name": "meaww_assignment",
+  "version": "1.0.0",
+  "description": "assignment",
+  "main": "server.js",
+  "dependencies": {
+    "express": "~4.0.0",
+    "body-parser": "~1.0.1"
+  },
+  "author": "swati",
+  "license": "ISC"
+}
