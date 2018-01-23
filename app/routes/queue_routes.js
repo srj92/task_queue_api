@@ -16,33 +16,14 @@ module.exports = function(app) {
      */
 
     app.get('/all', (req, res) => {
-
         // Get current timestamp to calculate the remaing time in each task
         const currentRequestTimeMillis = getCurrentTimeMillis();
-        var reponseArray = [];
-
-        /**
-         * Iterate the task queue containg all current running tasks, 
-         * calculate remaining time and form response array.
-         */
-        for (var task in queue) {
-            if(queue.hasOwnProperty(task) ) {
-                const inputTimeMillis = queue[task].inputTimeMillis;
-                const difference = currentRequestTimeMillis - inputTimeMillis;
-                const remainingTimeMillis = queue[task].timeOffset*1000 - difference;
-
-                const response = {
-                    name: queue[task].taskName,
-                    remaining: remainingTimeMillis
-                }
-                reponseArray.push(response);    
-            }
-        } 
-        res.json(reponseArray);
+        // Prepare response
+        var responseArray = getResponseArray(currentRequestTimeMillis); 
+        res.json(responseArray);
     });
 
 
-    
     app.post('/queue/:task/:timeOffset', (req, res) => {
         const currentRequestTimeMillis = getCurrentTimeMillis();
         var taskName = req.params.task;
@@ -61,11 +42,56 @@ module.exports = function(app) {
     });
 
 
-    // Helper function. Returns current timestamp in milli seconds
+    app.delete('/remove/:task', (req, res) => {
+        // Get current timestamp to calculate the remaing time in each left task
+        const currentRequestTimeMillis = getCurrentTimeMillis();
+
+        // Delete the task object from queue object
+        var taskName = req.params.task;
+        delete queue[taskName]; 
+        
+        // Prepare response
+        var responseArray = getResponseArray(currentRequestTimeMillis);
+       
+        // Return response
+        res.json(responseArray);
+    });
+
+
+    /**
+     * Helper functions
+     */
+
+    //Returns current timestamp in milli seconds
     function getCurrentTimeMillis() {
         const currentRequestTime = new Date(); 
         const currentRequestTimeMillis = Math.round(currentRequestTime.getTime()); 
         return currentRequestTimeMillis;
+    }
+
+    /**
+    * Iterate the queue containg all current polling tasks, 
+    * calculate remaining time and return response array.
+    */
+    function getResponseArray(currentRequestTimeMillis) {
+        var responseArray = [];
+        for (var task in queue) {
+            if(queue.hasOwnProperty(task) ) {
+                const inputTimeMillis = queue[task].inputTimeMillis;
+                const difference = currentRequestTimeMillis - inputTimeMillis;
+                const remainingTimeMillis = queue[task].timeOffset*1000 - difference;
+
+                // Remaining time will be >= 0 only for running tasks. Finished tasks will be in negative
+                if (remainingTimeMillis>=0) {
+                    const response = {
+                        name: queue[task].taskName,
+                        remaining: remainingTimeMillis
+                    }
+                    responseArray.push(response);    
+                }
+            }
+        }
+        return responseArray;
     }
 
 };
